@@ -1,0 +1,10 @@
+spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB #文件上传的最大大小
+      max-request-size: 60MB #请求最大大小
+      file-size-threshold: 10KB # 文件大小超过该值就会将文件暂存到磁盘
+      location: D:/temp/ # 上传时超过file-size-threshold大小暂存的文件目录，如果为相对路径则会沿用运行容器的配置临时文件的相对路径
+
+
+
