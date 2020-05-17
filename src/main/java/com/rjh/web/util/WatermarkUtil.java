@@ -25,10 +25,10 @@ import java.util.Map;
 @Slf4j
 public class WatermarkUtil {
 
-    public static void watermarkPdf(InputStream inputStream, String watermark, OutputStream outputStream) {
+    public static void watermarkPdf(InputStream inputStream, String watermark,float fontSize,float theta, OutputStream outputStream) {
         try {
             PDDocument doc = PDDocument.load(inputStream);
-            watermarkPdf(doc, watermark);
+            watermarkPdf(doc, watermark,fontSize,theta);
             // 将修改后的文件转到输出流
             doc.save(outputStream);
         } catch (IOException e) {
@@ -36,10 +36,10 @@ public class WatermarkUtil {
         }
     }
 
-    public static void watermarkPdf(File infile, String watermark, File outFile) {
+    public static void watermarkPdf(File infile, String watermark,float fontSize,float theta, File outFile) {
         try {
             PDDocument doc = PDDocument.load(infile);
-            watermarkPdf(doc, watermark);
+            watermarkPdf(doc, watermark,fontSize,theta);
             // 将修改后的文件转到输出流
             doc.save(outFile);
         } catch (IOException e) {
@@ -51,11 +51,13 @@ public class WatermarkUtil {
      * 水印处理
      * TODO 增加中文水印支持
      *
-     * @param doc
-     * @param watermark
+     * @param doc pdf对象
+     * @param watermark 水印内容
+     * @param fontSize 字体大小
+     * @param theta 水印旋转角度
      * @throws IOException
      */
-    public static void watermarkPdf(PDDocument doc, String watermark) throws IOException {
+    public static void watermarkPdf(PDDocument doc, String watermark,float fontSize,float theta) throws IOException {
         // 移除PDF的安全模式
         doc.setAllSecurityToBeRemoved(true);
         // 获取每一页内容
@@ -64,8 +66,6 @@ public class WatermarkUtil {
         PDFont font = PDType1Font.COURIER_OBLIQUE;
         // TODO 加载项目下自己准备的字体库，解决中文乱码问题
 //        PDFont font = PDType0Font.load(doc,new FileInputStream("/Library/Fonts/Arial Unicode.ttf"),false);
-        // 字体大小
-        float fontSize = 36;
         // 基准宽度
         float baseWidth = font.getStringWidth("A");
         float strWidth = font.getStringWidth(watermark)/baseWidth;
@@ -87,12 +87,12 @@ public class WatermarkUtil {
             stream.setNonStrokingColor(Color.RED);
             // 设置水印字体和大小
             stream.setFont(font, fontSize);
-            List<Location> list = getLocation(height, width, strWidth, fontSize);
+            List<Location> list = getLocation(height, width, strWidth, fontSize,theta);
             // 开始追加文本水印
             stream.beginText();
             for (Location location : list) {
                 // 设置水印位置
-                stream.setTextMatrix(Matrix.getRotateInstance(45, location.getX(), location.getY()));
+                stream.setTextMatrix(Matrix.getRotateInstance(theta, location.getX(), location.getY()));
                 // 设置水印内容
                 stream.showText(watermark);
             }
@@ -107,24 +107,30 @@ public class WatermarkUtil {
     /**
      * 获取水印位置
      *
-     * @param height
-     * @param width
-     * @param strWidth
-     * @param fontSize
+     * @param height 页面高度
+     * @param width 页面宽度
+     * @param strWidth 字符内容宽度
+     * @param fontSize 字体大小
+     * @param theta 水印旋转角度
      * @return
      */
-    private static List<Location> getLocation(float height, float width, float strWidth, float fontSize) {
+    private static List<Location> getLocation(float height, float width, float strWidth, float fontSize,float theta) {
         // 计算水印间隔 TODO 长文本内容，水印间隔较大
-        float interval = (float) Math.sqrt((strWidth * fontSize * strWidth * fontSize / 2));
+//        float interval = (float) Math.sqrt((strWidth * fontSize * strWidth * fontSize / 2));
+        // 内容长度
+        float strSize = strWidth * fontSize;
+        // 计算水印间隔 TODO 根据角度自动调整水印间隔
+        float heightInterval = (float) (strSize*Math.sin(theta/100));
+        float widthInterval = (float) (strSize*Math.cos(theta/100));
         float x = fontSize;
         float y = fontSize;
         List<Location> list = new ArrayList<>();
         while (y < height) {
             while (x < width) {
                 list.add(new Location(x,y));
-                x += interval;
+                x += widthInterval;
             }
-            y += interval;
+            y += heightInterval;
             x = fontSize;
         }
         return list;
