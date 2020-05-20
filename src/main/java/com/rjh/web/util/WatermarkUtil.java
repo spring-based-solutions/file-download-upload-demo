@@ -36,7 +36,15 @@ public class WatermarkUtil {
         }
     }
 
-    public static void watermarkPdf(File infile, String watermark,float fontSize,float theta, File outFile) {
+    /**
+     *
+     * @param infile 原始文件
+     * @param outFile 修改后的文件
+     * @param watermark 水印内容
+     * @param fontSize 字体大小
+     * @param theta 水印倾斜角度
+     */
+    public static void watermarkPdf(File infile,File outFile,String watermark,float fontSize,float theta) {
         try {
             PDDocument doc = PDDocument.load(infile);
             watermarkPdf(doc, watermark,fontSize,theta);
@@ -64,10 +72,13 @@ public class WatermarkUtil {
         PDPageTree tree = doc.getPages();
         // 水印字体
         PDFont font = PDType1Font.COURIER_OBLIQUE;
+        // 获取角度对应的弧度值
+        double angle = Math.toRadians(theta);
         // TODO 加载项目下自己准备的字体库，解决中文乱码问题
 //        PDFont font = PDType0Font.load(doc,new FileInputStream("/Library/Fonts/Arial Unicode.ttf"),false);
         // 基准宽度
         float baseWidth = font.getStringWidth("A");
+        // 实际宽度
         float strWidth = font.getStringWidth(watermark)/baseWidth;
         for (PDPage page : tree) {
             PDRectangle rectangle = page.getBBox();
@@ -79,20 +90,20 @@ public class WatermarkUtil {
             // 设置图层
             PDExtendedGraphicsState state = new PDExtendedGraphicsState();
             // 设置透明度
-            state.setNonStrokingAlphaConstant(0.2f);
-            state.setAlphaSourceFlag(true);
+            state.setNonStrokingAlphaConstant(0.1f);
+//            state.setAlphaSourceFlag(true);
             // 设置图层的参数
             stream.setGraphicsStateParameters(state);
             // 设置字体颜色
             stream.setNonStrokingColor(Color.RED);
             // 设置水印字体和大小
             stream.setFont(font, fontSize);
-            List<Location> list = getLocation(height, width, strWidth, fontSize,theta);
+            List<Location> list = getLocation(height, width, strWidth, fontSize, angle);
             // 开始追加文本水印
             stream.beginText();
             for (Location location : list) {
                 // 设置水印位置
-                stream.setTextMatrix(Matrix.getRotateInstance(theta, location.getX(), location.getY()));
+                stream.setTextMatrix(Matrix.getRotateInstance(angle, location.getX(), location.getY()));
                 // 设置水印内容
                 stream.showText(watermark);
             }
@@ -106,7 +117,6 @@ public class WatermarkUtil {
 
     /**
      * 获取水印位置
-     *
      * @param height 页面高度
      * @param width 页面宽度
      * @param strWidth 字符内容宽度
@@ -114,14 +124,12 @@ public class WatermarkUtil {
      * @param theta 水印旋转角度
      * @return
      */
-    private static List<Location> getLocation(float height, float width, float strWidth, float fontSize,float theta) {
-        // 计算水印间隔 TODO 长文本内容，水印间隔较大
-//        float interval = (float) Math.sqrt((strWidth * fontSize * strWidth * fontSize / 2));
+    private static List<Location> getLocation(float height, float width, float strWidth, float fontSize,double theta) {
         // 内容长度
         float strSize = strWidth * fontSize;
-        // 计算水印间隔 TODO 根据角度自动调整水印间隔
-        float heightInterval = (float) (strSize*Math.sin(theta/100));
-        float widthInterval = (float) (strSize*Math.cos(theta/100));
+        // 根据角度自动调整水印间隔
+        float heightInterval = (float) (strSize*Math.sin(theta));
+        float widthInterval = (float) (strSize*Math.cos(theta));
         float x = fontSize;
         float y = fontSize;
         List<Location> list = new ArrayList<>();
