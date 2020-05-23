@@ -11,7 +11,10 @@ import org.apache.pdfbox.util.Matrix;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 
+import javax.imageio.ImageIO;
+import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -143,6 +146,47 @@ public class WatermarkUtil {
             stream.close();
         }
     }
+
+    /**
+     * @param infile    原始文件
+     * @param outFile   修改后的文件
+     * @param watermark 水印内容
+     * @param fontSize  字体大小
+     * @param alpha     透明度
+     */
+    public static void watermarkImg(File infile, File outFile, String watermark, float fontSize, float alpha) {
+        ImageIcon icon = new ImageIcon(infile.getPath());
+        int width = icon.getIconWidth();
+        int height = icon.getIconHeight();
+        // 初始化图片缓存流
+        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+
+        // 生成画笔对象
+        Graphics2D g = bufferedImage.createGraphics();
+        g.setColor(Color.WHITE);
+        // 填充画布为全白色
+        g.fillRect(0, 0, width, height);
+        // 将源图片内容画到画布上，避免背景色为黑色问题
+        g.drawImage(icon.getImage(), 0, 0, icon.getImageObserver());
+        // 设置水印文件的字体颜色
+        g.setColor(Color.RED);
+        Font font = new Font("微软雅黑", Font.BOLD, (int) fontSize);
+        g.setFont(font);
+        g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP, alpha));
+        // 在指定坐标绘制水印文字
+        final FontMetrics metrics = g.getFontMetrics(font);
+        final int textLength = metrics.stringWidth(watermark);
+        final int textHeight = metrics.getAscent() - metrics.getLeading() - metrics.getDescent();
+        // 将水印打到图片正中间
+        g.drawString(watermark, Math.abs(width - textLength) / 2, Math.abs(height + textHeight) / 2 );
+        g.dispose();
+        try {
+            ImageIO.write(bufferedImage, "jpg", outFile);
+        } catch (IOException e) {
+            log.error(e.getMessage(),e);
+        }
+    }
+
 
     /**
      * 获取水印位置
