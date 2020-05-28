@@ -1,7 +1,5 @@
 package com.rjh.web.controller;
 
-import cn.hutool.http.useragent.UserAgent;
-import cn.hutool.http.useragent.UserAgentUtil;
 import com.rjh.web.util.WatermarkUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.*;
@@ -60,11 +58,11 @@ public class FileController {
     /**
      * 给pdf文件加水印
      *
-     * @param file      pdf文件
+     * @param file      文件
      * @param watermark 水印内容
      * @return
      */
-    @PostMapping("pdf/watermark")
+    @PostMapping("watermark")
     public ResponseEntity<Resource> upload(@RequestParam("file") MultipartFile file, @RequestParam("content") String watermark) {
         String fileName = file.getResource().getFilename();
         InputStream originStream = null;
@@ -75,12 +73,19 @@ public class FileController {
             log.error(e.getMessage(), e);
         }
         InputStream inputStream;
+        String fileType = fileName.substring(fileName.lastIndexOf(".") + 1);
+        ByteArrayOutputStream outputStream = null;
         // 判断上传的文件是否为pdf文件
-        if (fileName.endsWith(".pdf")) {
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        if ("pdf".equals(fileType)) {
+            outputStream = new ByteArrayOutputStream();
             WatermarkUtil.watermarkPdf(originStream, outputStream, watermark, 30, 30, 0.2f);
             inputStream = new ByteArrayInputStream(outputStream.toByteArray());
             builder.append(fileName, 0, fileName.lastIndexOf(".pdf")).append("_加水印版.pdf");
+        } else if ("jpg".equals(fileType) || "png".equals(fileType)) {
+            outputStream = new ByteArrayOutputStream();
+            WatermarkUtil.watermarkImg(originStream, outputStream, watermark, 50, 0.2f, fileType);
+            inputStream = new ByteArrayInputStream(outputStream.toByteArray());
+            builder.append(fileName, 0, fileName.lastIndexOf(".")).append("_加水印版").append(fileName, fileName.lastIndexOf("."), fileName.length());
         } else {
             inputStream = originStream;
             builder.append(fileName);
@@ -97,7 +102,7 @@ public class FileController {
      * @param fileName
      * @return
      */
-    private String handleFileName(String fileName){
+    private String handleFileName(String fileName) {
         String newFileName;
         try {
             newFileName = URLEncoder.encode(fileName, "UTF-8");

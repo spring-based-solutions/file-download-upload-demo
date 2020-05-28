@@ -153,8 +153,9 @@ public class WatermarkUtil {
      * @param watermark 水印内容
      * @param fontSize  字体大小
      * @param alpha     透明度
+     * @param fileType  文件类型
      */
-    public static void watermarkImg(File infile, File outFile, String watermark, float fontSize, float alpha) {
+    public static void watermarkImg(File infile, File outFile, String watermark, float fontSize, float alpha,String fileType) {
         ImageIcon icon = new ImageIcon(infile.getPath());
         int width = icon.getIconWidth();
         int height = icon.getIconHeight();
@@ -181,7 +182,46 @@ public class WatermarkUtil {
         g.drawString(watermark, Math.abs(width - textLength) / 2, Math.abs(height + textHeight) / 2 );
         g.dispose();
         try {
-            ImageIO.write(bufferedImage, "jpg", outFile);
+            ImageIO.write(bufferedImage, fileType, outFile);
+        } catch (IOException e) {
+            log.error(e.getMessage(),e);
+        }
+    }
+
+    /**
+     * @param inputStream  输入流
+     * @param outputStream 输出流
+     * @param watermark 水印内容
+     * @param fontSize  字体大小
+     * @param alpha     透明度
+     * @param fileType  文件类型
+     */
+    public static void watermarkImg(InputStream inputStream, OutputStream outputStream, String watermark, float fontSize, float alpha,String fileType) {
+        // 初始化图片缓存流
+        BufferedImage bufferedImage = null;
+        try {
+            bufferedImage = ImageIO.read(inputStream);
+        } catch (IOException e) {
+            log.error(e.getMessage(),e);
+        }
+        int width = bufferedImage.getWidth();
+        int height = bufferedImage.getHeight();
+        // 生成画笔对象
+        Graphics2D g = bufferedImage.createGraphics();
+        // 设置水印文件的字体颜色
+        g.setColor(Color.RED);
+        Font font = new Font("微软雅黑", Font.BOLD, (int) fontSize);
+        g.setFont(font);
+        g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_ATOP, alpha));
+        // 在指定坐标绘制水印文字
+        final FontMetrics metrics = g.getFontMetrics(font);
+        final int textLength = metrics.stringWidth(watermark);
+        final int textHeight = metrics.getAscent() - metrics.getLeading() - metrics.getDescent();
+        // 将水印打到图片正中间
+        g.drawString(watermark, Math.abs(width - textLength) / 2, Math.abs(height + textHeight) / 2 );
+        g.dispose();
+        try {
+            ImageIO.write(bufferedImage, fileType, outputStream);
         } catch (IOException e) {
             log.error(e.getMessage(),e);
         }
